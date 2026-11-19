@@ -1,0 +1,13 @@
+[package]
+name = "todo-api"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+forge-core.workspace = true
+forge-di.workspace = true
+forge-http.workspace = true
+forge-json.workspace = true
+forge-config.workspace = true
+forge-macros.workspace = true

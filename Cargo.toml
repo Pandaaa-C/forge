@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/macros",
+    "crates/di",
+    "crates/http",
+    "crates/json",
+    "crates/validation",
+    "crates/config",
+    "examples/todo-api",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Pandaaa-C/forge"
+
+[workspace.dependencies]
+forge-core = { path = "crates/core", version = "0.1.0" }
+forge-macros = { path = "crates/macros", version = "0.1.0" }
+forge-di = { path = "crates/di", version = "0.1.0" }
+forge-http = { path = "crates/http", version = "0.1.0" }
+forge-json = { path = "crates/json", version = "0.1.0" }
+forge-validation = { path = "crates/validation", version = "0.1.0" }
+forge-config = { path = "crates/config", version = "0.1.0" }

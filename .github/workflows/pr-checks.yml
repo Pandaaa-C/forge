@@ -1,0 +1,60 @@
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  title:
+    name: Conventional PR title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|refactor|docs|test|build|ci|chore|style|revert)(\([a-z0-9-]+\))?!?: .+'
+          if [[ "$TITLE" =~ $pattern ]]; then
+            echo "Title OK."
+            exit 0
+          fi
+          echo "PR title must follow Conventional Commits, for example:"
+          echo "  feat(http): add keep-alive support"
+          echo "  fix(json): handle escaped quotes"
+          echo "  feat(core)!: rename Module::routes"
+          echo "Got:"
+          printf '  %s\n' "$TITLE"
+          exit 1
+
+  branch:
+    name: Branch flow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source and target branches
+        env:
+          HEAD: ${{ github.head_ref }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          if [[ "$BASE" == main ]]; then
+            if [[ "$HEAD" == dev || "$HEAD" =~ ^hotfix/ ]]; then
+              echo "OK: $HEAD -> main"
+              exit 0
+            fi
+            echo "Only 'dev' (a release) or 'hotfix/*' branches can be merged into main."
+          elif [[ "$BASE" == dev ]]; then
+            if [[ "$HEAD" =~ ^(feature|fix|perf|refactor|docs|test|ci|chore|dependabot)/ || "$HEAD" == main ]]; then
+              echo "OK: $HEAD -> dev"
+              exit 0
+            fi
+            echo "Branches merged into dev must be named feature/<name>, fix/<name>, chore/<name>, etc."
+          fi
+          printf 'Got: %s -> %s\n' "$HEAD" "$BASE"
+          exit 1

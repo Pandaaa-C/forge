@@ -1,0 +1,10 @@
+[package]
+name = "forge-http"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Zero-dependency HTTP/1.1 server and router for forge"
+
+[dependencies]
+forge-json.workspace = true

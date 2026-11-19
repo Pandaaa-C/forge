@@ -1,0 +1,9 @@
+[package]
+name = "forge-json"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Zero-dependency JSON value type and serialization for forge"
+
+[dependencies]

@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump. 'auto' reads the commit messages since the last release."
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy && rustup default stable
+
+      - name: Run all checks
+        run: bash scripts/ci.sh
+
+      - name: Work out the next version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          version=$(bash scripts/next-version.sh "$BUMP")
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "Tag v$version already exists."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "Releasing v$version"
+
+      - name: Update version and changelog
+        run: |
+          bash scripts/set-version.sh "$VERSION"
+          bash scripts/changelog.sh "$VERSION" > "$RUNNER_TEMP/release-notes.md"
+          bash scripts/changelog.sh "$VERSION" --write
+
+      - name: Commit, tag and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock CHANGELOG.md
+          git commit -m "chore(release): v$VERSION"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin HEAD:main --follow-tags
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v$VERSION" --title "v$VERSION" --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [[ -z "$CARGO_REGISTRY_TOKEN" ]]; then
+            echo "CARGO_REGISTRY_TOKEN is not set, skipping crates.io."
+            exit 0
+          fi
+          cargo publish --workspace --exclude todo-api
+
+      - name: Merge main back into dev
+        run: |
+          git fetch origin dev
+          git checkout -B dev origin/dev
+          git merge --no-ff main -m "chore: merge v$VERSION back into dev"
+          git push origin dev

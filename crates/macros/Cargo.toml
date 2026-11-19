@@ -1,0 +1,12 @@
+[package]
+name = "forge-macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Procedural macros (controller, routes, injectable, module) for forge"
+
+[lib]
+proc-macro = true
+
+[dependencies]
